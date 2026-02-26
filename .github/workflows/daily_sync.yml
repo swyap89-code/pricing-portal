@@ -1,27 +1,44 @@
-name: Daily Metal Price Sync
+name: Daily Yahoo Metal Sync
 on:
   schedule:
-    - cron: '0 0 * * *' # Runs at midnight UTC every day
-  workflow_dispatch: # This adds a "Play" button so you can test it manually
+    - cron: '0 0 * * *'
+  workflow_dispatch:
 
 jobs:
-  update-prices:
+  build:
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - name: Checkout Repository
+      - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Fetch Prices from API
-        run: |
-          # Hits the API and saves the result directly into your market_data.json
-          curl "https://metals-api.com/api/latest?access_key=YOUR_METALS_API_KEY&symbols=XCU,XAG" -o market_data.json
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
 
-      - name: Commit and Push Updates
+      - name: Install Dependencies
+        run: pip install yfinance
+
+      - name: Fetch Prices
         run: |
-          git config --global user.name "MCB-Price-Bot"
-          git config --global user.email "bot@mcb-intelligence.com"
+          python - <<EOF
+          import yfinance as yf
+          import json
+          # SI=F is Silver, HG=F is Copper (Comex)
+          silver = yf.Ticker("SI=F").history(period="1d")['Close'].iloc[-1]
+          copper = yf.Ticker("HG=F").history(period="1d")['Close'].iloc[-1]
+          # Note: Copper is in lbs, Silver is in oz. We save them as USD prices.
+          data = {"rates": {"XAG": 1/silver, "XCU": 1/copper}} 
+          with open('market_data.json', 'w') as f:
+              json.dump(data, f)
+          EOF
+
+      - name: Commit and Push
+        run: |
+          git config --global user.name "Yahoo-Bot"
+          git config --global user.email "bot@yahoo.com"
           git add market_data.json
-          git commit -m "Automated Market Data Update: $(date)" || exit 0
+          git commit -m "Automated Yahoo Price Update"
           git push
