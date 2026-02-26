@@ -1,0 +1,27 @@
+name: Daily Metal Price Sync
+on:
+  schedule:
+    - cron: '0 0 * * *' # Runs at midnight UTC every day
+  workflow_dispatch: # This adds a "Play" button so you can test it manually
+
+jobs:
+  update-prices:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Fetch Prices from API
+        run: |
+          # Hits the API and saves the result directly into your market_data.json
+          curl "https://metals-api.com/api/latest?access_key=YOUR_METALS_API_KEY&symbols=XCU,XAG" -o market_data.json
+
+      - name: Commit and Push Updates
+        run: |
+          git config --global user.name "MCB-Price-Bot"
+          git config --global user.email "bot@mcb-intelligence.com"
+          git add market_data.json
+          git commit -m "Automated Market Data Update: $(date)" || exit 0
+          git push
