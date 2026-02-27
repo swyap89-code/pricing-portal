@@ -1,1 +1,1 @@
-{"success":false,"error":{"code":401,"type":"invalid_access_key","info":"No API Key was specified or an invalid API Key was specified."}}
+{"rates": {"XAG": 0.011088933207096098, "XCU": 0.16548071543719803}}
